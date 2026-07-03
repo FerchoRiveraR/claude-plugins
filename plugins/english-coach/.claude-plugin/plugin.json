@@ -1,0 +1,11 @@
+{
+  "name": "english-coach",
+  "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, Spanish word-order calques), remembers recurring ones in a local per-user ledger, and injects a short hint as context in a configurable render style. Never blocks a turn.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Luis Fernando Rivera Ramirez",
+    "url": "https://github.com/ferchoriverar"
+  },
+  "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/english-coach",
+  "repository": "https://github.com/ferchoriverar/claude-plugins"
+}

@@ -1,0 +1,17 @@
+{
+  "description": "UserPromptSubmit hook: gives gentle, non-blocking English hints on the natural-language part of each prompt (ignores code/commands/paths) and remembers recurring mistakes in a per-user ledger. Requires the `claude` CLI and `jq`; degrades to a no-op if either is missing.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/english-coach.sh\"",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
+}

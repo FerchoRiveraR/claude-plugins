@@ -1,0 +1,11 @@
+{
+  "name": "render",
+  "description": "On-demand, fully-offline Mermaid rendering for Claude Code: the /render command wraps a bundled script that turns a mermaid block into a self-contained HTML file and prints a file:// URL. Nothing leaves the machine (no CDN at render time, no third-party live editor) — safe for diagrams that encode sensitive detail. Cross-platform: Linux, macOS, WSL, Windows.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Luis Fernando Rivera Ramirez",
+    "url": "https://github.com/ferchoriverar"
+  },
+  "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/render",
+  "repository": "https://github.com/ferchoriverar/claude-plugins"
+}
