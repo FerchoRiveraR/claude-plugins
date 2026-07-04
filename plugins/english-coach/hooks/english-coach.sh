@@ -18,6 +18,10 @@ command -v jq     >/dev/null 2>&1 || exit 0
 input=$(cat)
 prompt=$(printf '%s' "$input" | jq -r '.prompt // .user_prompt // ""')
 
+# Coach on a sample, not the whole paste — grammar hints don't need a megabyte.
+# Also dodges the CLI "prompt too long" error leaking in as a bogus hint + ledger rot.
+prompt=$(printf '%s' "$prompt" | head -c 8000)   # ~1500 words, well under context limit
+
 # Skip non-prose: slash commands and anything with fewer than 5 real words
 # (terse dev commands, acks, pasted code). Keeps latency/cost off normal work.
 trimmed=$(printf '%s' "$prompt" | sed 's/^[[:space:]]*//')
