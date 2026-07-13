@@ -1,9 +1,13 @@
 # render
 
-On-demand **Mermaid → offline HTML** rendering for Claude Code. When an answer
-contains a mermaid diagram, run `/render` to turn it into a self-contained HTML
-page and get a `file://` URL you open in your browser — instead of copying the
-text into a third-party live editor.
+On-demand **diagram/markup → offline HTML** rendering for Claude Code. When an
+answer contains a mermaid diagram, a Chart.js config, an SVG, or a block of HTML,
+run `/render` to turn it into a self-contained HTML page and get a `file://` URL
+you open in your browser — instead of copying the text into a third-party live
+editor. It's the offline, on-your-machine cousin of claude.ai's artifact/
+visualization rendering.
+
+Kinds: **mermaid** (default), **chart** (Chart.js), **svg**, **html**.
 
 ## Why it exists
 
@@ -27,9 +31,10 @@ claude plugin install render@ferchoriverar
 ## Usage
 
 ```
-/render                 # render the most recent mermaid block from the last answer
-/render path/to.mmd     # render a file
-/render -o              # also open it in your default browser
+/render                        # render the most recent renderable block from the last answer
+/render path/to.mmd            # render a file (kind inferred from the extension)
+/render --kind chart           # force a kind when it's ambiguous
+/render -o                     # also open it in your default browser
 ```
 
 `/render` prints a `file://` URL and, by default, **does not open the browser** —
@@ -40,20 +45,24 @@ you decide when to look, so it never interrupts your reading. Pass `-o` to open.
 The renderer also works as a plain CLI (Linux, macOS, WSL, Windows/Git Bash):
 
 ```
-scripts/render.sh diagram.mmd            # print the file:// URL
-scripts/render.sh -o diagram.mmd         # print and open
-pbpaste            | scripts/render.sh   # macOS: render the clipboard
-xclip -sel clip -o | scripts/render.sh   # Linux/X11
-wl-paste           | scripts/render.sh   # Linux/Wayland
+scripts/render.sh diagram.mmd              # print the file:// URL (kind from extension)
+scripts/render.sh --kind chart cfg.json    # force a kind
+scripts/render.sh -o diagram.svg           # print and open
+pbpaste            | scripts/render.sh     # macOS: render the clipboard
+xclip -sel clip -o | scripts/render.sh     # Linux/X11
+wl-paste           | scripts/render.sh     # Linux/Wayland
+scripts/selftest.sh                        # smoke-test all four kinds
 ```
 
-```` ```mermaid ```` fences are stripped automatically, so you can pipe a whole
-fenced block copied from an answer.
+``` fences are stripped automatically, so you can pipe a whole fenced block copied
+from an answer.
 
 ## How it works
 
-1. Read the diagram source (file, stdin, or the last mermaid block).
-2. Vendor `mermaid.js` once to `~/.local/share/mermaid-render/` (skipped on reruns).
+1. Read the source (file, stdin, or the last renderable block) and determine its
+   kind (`--kind`, else file extension, else mermaid).
+2. Vendor the library the kind needs — `mermaid.js` or `chart.js` — once to
+   `~/.local/share/mermaid-render/` (skipped on reruns; `svg`/`html` need none).
 3. Write a self-contained `index.html` to a temp dir with the library beside it.
 4. Print `file://…/index.html`.
 
@@ -61,7 +70,8 @@ fenced block copied from an answer.
 
 - **Local HTTP server** for clickable `http://localhost` URLs — added only if
   `file://` links are not clickable in your terminal.
-- **Broader kinds** (`svg`, `html`, `png`, charts) behind the same command.
+- **More lib-backed kinds** (`png` via headless browser, other chart libs) — only
+  if a real diagram needs one; `png` would break the no-headless-browser design.
 - **MCP wrapper** so rendering can be invoked hands-free.
 
 ## Compatibility
