@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ferchoriverar",
   "owner": {
     "name": "Luis Fernando Rivera Ramirez",
@@ -12,10 +13,16 @@
     {
       "name": "english-coach",
       "source": "./plugins/english-coach",
-      "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, word-order calques), remembers recurring ones in a local per-user ledger, and injects a short hint as context in a configurable render style. Never blocks a turn.",
-      "version": "0.1.0",
+      "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, word-order calques), remembers recurring ones in a local per-user ledger, and posts a short hint as soon as it's ready via a background wake — even mid-idle. Never blocks or slows a turn.",
+      "version": "0.6.0",
       "category": "productivity",
-      "keywords": ["english", "coaching", "hooks", "non-blocking", "developer-experience"],
+      "keywords": [
+        "english",
+        "coaching",
+        "hooks",
+        "non-blocking",
+        "developer-experience"
+      ],
       "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/english-coach",
       "repository": "https://github.com/ferchoriverar/claude-plugins"
     },
@@ -25,7 +32,14 @@
       "description": "On-demand, fully-offline Mermaid rendering: the /render command wraps a bundled script that turns a mermaid block into a self-contained HTML file and prints a file:// URL. Nothing leaves the machine — no CDN at render time, no third-party live editor — so it is safe for diagrams that encode sensitive detail. Cross-platform (Linux, macOS, WSL, Windows).",
       "version": "0.1.0",
       "category": "productivity",
-      "keywords": ["mermaid", "diagram", "render", "visualization", "offline", "command"],
+      "keywords": [
+        "mermaid",
+        "diagram",
+        "render",
+        "visualization",
+        "offline",
+        "command"
+      ],
       "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/render",
       "repository": "https://github.com/ferchoriverar/claude-plugins"
     }

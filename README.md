@@ -20,7 +20,7 @@ claude plugin install render@ferchoriverar
 
 | Plugin | What it does |
 |---|---|
-| [`english-coach`](plugins/english-coach) | Non-blocking English coaching on every prompt — flags natural-language mistakes and injects a short, muted hint. Never blocks a turn. |
+| [`english-coach`](plugins/english-coach) | Non-blocking English coaching on every prompt — flags natural-language mistakes and posts a short, muted hint as soon as it's ready, even mid-idle. Never blocks or slows a turn. |
 | [`render`](plugins/render) | `/render` turns a Mermaid block into a self-contained, fully-offline HTML file and prints a `file://` URL. Nothing leaves the machine. |
 
 ## Contributing
