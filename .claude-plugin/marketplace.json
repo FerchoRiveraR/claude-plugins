@@ -14,7 +14,7 @@
       "name": "english-coach",
       "source": "./plugins/english-coach",
       "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, word-order calques), remembers recurring ones in a local per-user ledger, and posts a short hint as soon as it's ready via a background wake — even mid-idle. Never blocks or slows a turn.",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "category": "productivity",
       "keywords": [
         "english",

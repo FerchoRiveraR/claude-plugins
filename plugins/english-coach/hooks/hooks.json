@@ -8,6 +8,8 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/english-coach.sh\"",
             "asyncRewake": true,
+            "rewakeSummary": "English coach",
+            "rewakeMessage": "English coach hint:",
             "timeout": 60,
             "statusMessage": "English coach..."
           }

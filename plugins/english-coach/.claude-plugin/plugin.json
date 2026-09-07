@@ -1,7 +1,7 @@
 {
   "name": "english-coach",
   "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, Spanish word-order calques), remembers recurring ones in a local per-user ledger, and posts a short hint as soon as it's ready via a background wake — even mid-idle, no need to send another message first. Never blocks or slows a turn.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "Luis Fernando Rivera Ramirez",
     "url": "https://github.com/ferchoriverar"

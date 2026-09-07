@@ -10,7 +10,7 @@ The hook is registered with `"asyncRewake": true` (`hooks.json`): Claude Code ru
 
 The hint is **hits-only**: a single line of `wrong → fix` pairs. The coach reports the specific fixes, never a full rewrite of your message — so it stays compact no matter how long the prompt is.
 
-**Hard guarantee: it never blocks a turn.** The hook runs in the background from the moment it fires (`asyncRewake` implies `async`), so your turn is never held up by it. It can only later *wake* Claude to post a hint; it cannot stop your turn or ask for confirmation. See [Technical Details](#technical-details) for why earlier designs couldn't deliver this at all.
+**Hard guarantee: it never blocks a turn.** The hook runs in the background from the moment it fires (`asyncRewake` implies `async`), so your turn is never held up by it. `asyncRewake` only backgrounds the hook when the host is interactive, so under headless `claude -p` the hook exits `0` immediately rather than risk exit `2` being read as a blocking error. It can only later *wake* Claude to post a hint; it cannot stop your turn or ask for confirmation. See [Technical Details](#technical-details) for why earlier designs couldn't deliver this at all.
 
 ## What it does, per message
 
@@ -102,4 +102,4 @@ Luis Fernando Rivera Ramirez
 
 ## Version
 
-0.6.0
+0.6.1
