@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin/marketplace manifests
+        run: .github/scripts/validate.sh
+
+      - name: Run plugin selftests
+        run: |
+          set -e
+          while IFS= read -r -d '' t; do
+            echo "== $t =="
+            bash "$t"
+          done < <(find plugins -name selftest.sh -print0)

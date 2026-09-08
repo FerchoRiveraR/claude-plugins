@@ -33,6 +33,20 @@ Reinstall (or restart the session) to pick up changes.
 3. Register it in `.claude-plugin/marketplace.json`.
 4. Write a `plugins/<name>/README.md`.
 
+## CI/CD
+
+All changes land via pull request — `main` is protected, no direct pushes.
+
+- **CI** (`.github/workflows/ci.yml`, on every PR): validates JSON syntax, checks
+  each `plugin.json` version matches its `marketplace.json` entry, and runs
+  every plugin's `selftest.sh`.
+- **Release** (`.github/workflows/release.yml`, on push to `main`): for each
+  plugin changed by the merge, bumps `plugin.json` + `marketplace.json`
+  together (major/minor/patch from Conventional Commit types touching that
+  plugin's directory — `feat`/`!`/`BREAKING CHANGE` bump minor/major, else
+  patch), or syncs `marketplace.json` if you already bumped `plugin.json`
+  yourself. Opens a `chore(release)` PR — merge it to publish.
+
 ## Style
 
 - Keep it small and dependency-light — prefer shell + stdlib over a new runtime.
