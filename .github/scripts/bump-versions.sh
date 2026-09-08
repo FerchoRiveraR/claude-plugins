@@ -31,11 +31,14 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   if [[ "$pv" != "$mv" ]]; then
     new="$pv" # manual bump already in plugin.json, just sync marketplace
   else
+    # Only commits scoped to this plugin (or unscoped) drive the bump type —
+    # a commit that happens to touch this dir under an unrelated scope
+    # (e.g. a repo-wide "feat(ci):" commit) must not escalate it.
     bump=patch
     while IFS= read -r msg; do
-      [[ "$msg" =~ ^[a-zA-Z]+(\([^\)]*\))?!: ]] && bump=major
+      [[ "$msg" =~ ^[a-zA-Z]+(\($name\))?!: ]] && bump=major
       [[ "$msg" == *"BREAKING CHANGE"* ]] && bump=major
-      [[ "$bump" != major && "$msg" =~ ^feat(\([^\)]*\))?: ]] && bump=minor
+      [[ "$bump" != major && "$msg" =~ ^feat(\($name\))?: ]] && bump=minor
     done < <(git log --format=%s "$before".."$after" -- "$dir")
 
     IFS=. read -r maj min pat <<<"$pv"
