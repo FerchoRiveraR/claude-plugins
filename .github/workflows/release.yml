@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release)') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump changed plugin + marketplace versions
+        id: bump
+        run: .github/scripts/bump-versions.sh "${{ github.event.before }}" "${{ github.sha }}"
+
+      - name: Open release PR
+        if: steps.bump.outputs.any == '1'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(release): bump plugin versions"
+          branch: release/auto-version-bump
+          title: "chore(release): bump plugin versions"
+          body: >
+            Automated version bump for plugins changed on `main`, keeping
+            each `plugin.json` in sync with its `marketplace.json` entry.
+            Merge to publish the new version(s).
+          labels: automated
