@@ -68,13 +68,14 @@ async function coach($, text) {
 
 const annotation = (Text, pairs) =>
   Text({
+    italic: true,
     children: [
-      Text({ dimColor: true, italic: true, children: ['  📝 English — '] }),
+      Text({ dimColor: true, children: ['  📝 English — '] }),
       ...pairs.flatMap((p, i) => [
         ...(i ? [Text({ dimColor: true, children: [' · '] })] : []),
-        Text({ color: 'error', strikethrough: true, children: [p.wrong] }),
-        Text({ dimColor: true, children: [' → '] }),
-        Text({ color: 'success', bold: true, children: [p.fix] }),
+        Text({ dimColor: true, strikethrough: true, children: [p.wrong] }),
+        ' → ',
+        Text({ bold: true, children: [p.fix] }),
       ]),
     ],
   })

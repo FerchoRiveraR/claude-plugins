@@ -23,7 +23,7 @@ Claude answers as usual. A few seconds later, your message gets a line of fixes:
   📝 English — explain me → explain to me · authorizations overlaps → authorizations overlap
 ```
 
-The mistake is struck through in red and the fix is bold green. Clean prose produces nothing.
+The line is italic, each mistake struck through and each fix in bold, as in 0.x. Clean prose produces nothing.
 
 Claude can't see the hints, so don't ask Claude whether the coach is running: check `/plugin`, where `english-coach` is listed among the active mods.
 
