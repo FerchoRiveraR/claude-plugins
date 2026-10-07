@@ -54,7 +54,7 @@ test('a real mistake: prompt passes unchanged, then its message row gets the fix
   expect(w.systems[0]).toContain('Spanish')
   expect(w.logs).toEqual(['explain me → explain to me'])
   expect(await row.find({ type: 'Text', text: 'drawn by Claude Code' })).toBeDefined()
-  expect((await row.find({ type: 'Text', text: /^explain me$/ }))?.props).toEqual({ dimColor: true, strikethrough: true })
+  expect((await row.find({ type: 'Text', text: /^explain me$/ }))?.props).toEqual({ strikethrough: true })
   expect((await row.find({ type: 'Text', text: /^explain to me$/ }))?.props).toEqual({ bold: true })
   expect(await other.find({ type: 'Text', text: 'explain to me' })).toBeUndefined()
   await submit($, PROSE, { kind: 'bridge' })

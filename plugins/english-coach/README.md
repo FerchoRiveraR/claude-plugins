@@ -20,10 +20,11 @@ Claude answers as usual. A few seconds later, your message gets a line of fixes:
 
 ```
 ❯ Can you explain me how the units are consumed when two authorizations overlaps?
+
   📝 English — explain me → explain to me · authorizations overlaps → authorizations overlap
 ```
 
-The line is italic, each mistake struck through and each fix in bold, as in 0.x. Clean prose produces nothing.
+Each mistake is struck through and each fix is bold. Clean prose produces nothing.
 
 Claude can't see the hints, so don't ask Claude whether the coach is running: check `/plugin`, where `english-coach` is listed among the active mods.
 
