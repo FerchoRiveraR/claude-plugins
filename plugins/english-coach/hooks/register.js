@@ -66,17 +66,22 @@ async function coach($, text) {
   await $.store.set(LEDGER, [...list(await $.store.get(LEDGER)), pairs].slice(-KEEP))
 }
 
-const annotation = (Text, pairs) =>
-  Text({
-    italic: true,
+const annotation = (Box, Text, pairs) =>
+  Box({
+    marginLeft: 2,
+    marginTop: 1,
     children: [
-      Text({ dimColor: true, children: ['  📝 English — '] }),
-      ...pairs.flatMap((p, i) => [
-        ...(i ? [Text({ dimColor: true, children: [' · '] })] : []),
-        Text({ dimColor: true, strikethrough: true, children: [p.wrong] }),
-        ' → ',
-        Text({ bold: true, children: [p.fix] }),
-      ]),
+      Text({
+        children: [
+          '📝 English — ',
+          ...pairs.flatMap((p, i) => [
+            ...(i ? [' · '] : []),
+            Text({ strikethrough: true, children: [p.wrong] }),
+            ' → ',
+            Text({ bold: true, children: [p.fix] }),
+          ]),
+        ],
+      }),
     ],
   })
 
@@ -99,7 +104,7 @@ export function register(on) {
     const pairs = hints.get(e.props.text)
     if (!pairs) return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    return Box({ flexDirection: 'column', children: [await next(e), annotation(Text, pairs)] })
+    return Box({ flexDirection: 'column', children: [await next(e), annotation(Box, Text, pairs)] })
   })
 
   on('session.start', async ($, e, next) => {
