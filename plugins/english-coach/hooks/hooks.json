@@ -1,20 +1,4 @@
 {
-  "description": "UserPromptSubmit hook: gives gentle, non-blocking English hints on the natural-language part of each prompt (ignores code/commands/paths) and remembers recurring mistakes in a per-user ledger. Registered with asyncRewake so Claude Code runs the model call in the background and wakes Claude to post the hint as soon as it's ready, even mid-idle — the hook itself never blocks or slows a turn. Requires the `claude` CLI and `jq`; degrades to a no-op if either is missing.",
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/english-coach.sh\"",
-            "asyncRewake": true,
-            "rewakeSummary": "English coach",
-            "rewakeMessage": "English coach hint:",
-            "timeout": 60,
-            "statusMessage": "English coach..."
-          }
-        ]
-      }
-    ]
-  }
+  "description": "english-coach mod: coaches the English in each prompt you type, in the background, and shows a dim hint line that Claude never reads. /english shows your recurring mistakes.",
+  "modules": ["./register.js"]
 }
