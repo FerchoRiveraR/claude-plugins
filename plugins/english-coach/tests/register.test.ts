@@ -20,26 +20,43 @@ function world(on: any, replies: unknown[], env: Record<string, string> = {}, le
     return replies.shift() ?? found([])
   })
   on('ui.log', ($: any, e: any) => {
-    if (e.to !== 'debug') w.logs.push(e.text)
+    if (!e.text.startsWith('no hint:')) w.logs.push(e.text)
     return { value: undefined }
   })
+  on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
   on('prompt.submit', ($: any, e: any) => ({ text: e.text }))
   return w
 }
 const submit = ($: any, text: string, origin: any = { kind: 'composer' }) => $.prompt.submit({ text, wait: false, origin })
+const message = ($: any, text: string, requestId = 'm1') =>
+  $.ui.mount({
+    plugin: 'english-coach',
+    component: 'UserMessage',
+    requestId,
+    surface: 'terminal',
+    viewport: { columns: 100, rows: 30 },
+    props: { text, origin: { kind: 'composer' }, isExpanded: true },
+  })
 
-test('a real mistake: prompt passes unchanged, hint drawn after, ledger feeds the next call', async ($, on) => {
+test('a real mistake: prompt passes unchanged, then its message row gets the fix', async ($, on) => {
   const w = world(on, [
     found([{ wrong: 'explain me', fix: 'explain to me' }]),
     found([{ wrong: 'explain me', fix: 'explain\u001b[2J to me' }]),
   ])
+  const row = await message($, PROSE)
+  const other = await message($, 'Some other message that was never coached at all', 'm2')
   const r = await submit($, PROSE)
   expect(r).toMatchObject({ text: PROSE })
   expect(r.context).toBeUndefined()
   expect(w.prompts.length).toBe(0)
+  expect(await row.find({ type: 'Text', text: 'explain to me' })).toBeUndefined()
   await w.clock.settle()
   expect(w.systems[0]).toContain('Spanish')
   expect(w.logs).toEqual(['explain me → explain to me'])
+  expect(await row.find({ type: 'Text', text: 'drawn by Claude Code' })).toBeDefined()
+  expect(await row.find({ type: 'Text', text: /^explain me$/ })).toMatchObject({ props: { color: 'error', strikethrough: true } })
+  expect(await row.find({ type: 'Text', text: /^explain to me$/ })).toMatchObject({ props: { color: 'success', bold: true } })
+  expect(await other.find({ type: 'Text', text: 'explain to me' })).toBeUndefined()
   await submit($, PROSE, { kind: 'bridge' })
   await w.clock.settle()
   expect(w.prompts[1]).toContain('explain me → explain to me')
@@ -76,19 +93,20 @@ test('slash, short, pasted-harness and non-user prompts make no model call', asy
   expect(w.prompts.length).toBe(1)
 })
 
-test('gates drop fabricated, smuggled, oversized, empty and link-bearing hints', async ($, on) => {
+test('gates drop fabricated, smuggled, oversized, long, empty and link-bearing hints', async ($, on) => {
   const w = world(on, [
+    found([{ wrong: 'Can you explain me how the units', fix: 'x' }]),
     found([{ wrong: 'totally fabricated fragment', fix: 'x' }]),
     found([{ wrong: 'explain\nfabricated claim', fix: 'x' }]),
     found([{ wrong: 'units', fix: 'y'.repeat(121) }]),
     found([{ wrong: '  ', fix: 'x' }]),
     found([{ wrong: 'explain me', fix: 'see https://evil.example' }]),
   ])
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     await submit($, PROSE)
     await w.clock.settle()
   }
-  expect(w.prompts.length).toBe(5)
+  expect(w.prompts.length).toBe(6)
   expect(w.logs).toEqual([])
   expect(w.ledger).toBeUndefined()
 })

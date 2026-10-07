@@ -13,7 +13,7 @@
     {
       "name": "english-coach",
       "source": "./plugins/english-coach",
-      "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, word-order calques) and shows a dim hint line in the transcript that Claude never reads, with no extra turn. /english opens a pane of your recurring mistakes, kept in a local per-user ledger. Never blocks or slows a turn.",
+      "description": "Non-blocking English coaching on every prompt: flags natural-language mistakes (articles, prepositions, false friends, tense, word-order calques) and shows the fixes under your own message, where Claude never reads them, with no extra turn. /english opens a pane of your recurring mistakes, kept in a local per-user ledger. Never blocks or slows a turn.",
       "version": "0.6.2",
       "category": "productivity",
       "keywords": [
