@@ -20,7 +20,7 @@ claude plugin install render@ferchoriverar
 
 | Plugin | What it does |
 |---|---|
-| [`english-coach`](plugins/english-coach) | Non-blocking English coaching on every prompt — a mod that flags natural-language mistakes in a dim transcript line Claude never reads, with no extra turn. `/english` shows your recurring mistakes. Needs Claude Code 2.1.292+. |
+| [`english-coach`](plugins/english-coach) | Non-blocking English coaching on every prompt — a mod that shows fixes for natural-language mistakes under your own message, where Claude never reads them, with no extra turn. `/english` shows your recurring mistakes. Needs Claude Code 2.1.292+. |
 | [`render`](plugins/render) | `/render` turns a Mermaid block into a self-contained, fully-offline HTML file and prints a `file://` URL. Nothing leaves the machine. |
 
 ## Contributing
