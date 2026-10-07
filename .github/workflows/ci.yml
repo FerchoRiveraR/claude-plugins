@@ -23,3 +23,15 @@ jobs:
             echo "== $t =="
             bash "$t"
           done < <(find plugins -name selftest.sh -print0)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate and test the english-coach mod
+        env:
+          DISABLE_AUTOUPDATER: "1"
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.292
+          claude plugin validate --strict plugins/english-coach
+          claude plugin test plugins/english-coach
