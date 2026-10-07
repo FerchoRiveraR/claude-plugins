@@ -15,10 +15,12 @@ These plugins run locally as part of your own Claude Code session. Worth flaggin
 
 - **Command injection** or arbitrary code execution in a hook or script.
 - **Data exfiltration** — anything that sends your prompts, code, or files
-  off-machine. Both plugins are designed to stay local; a break in that is a bug.
+  anywhere not documented. `render` stays fully local. `english-coach` sends the
+  prose of each prompt you type to Anthropic through your own Claude Code
+  session, and nothing else; any other path off the machine is a bug.
 - **Path traversal** or writes outside the documented locations.
 
 ## Supported versions
 
-This is a personal, pre-1.0 project — only the latest `main` is supported.
+This is a personal project — only the latest `main` is supported.
 Fixes ship there; there are no backports.
