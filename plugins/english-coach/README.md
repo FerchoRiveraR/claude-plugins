@@ -4,40 +4,27 @@ Non-blocking English coaching on every prompt, for non-native-English-speaking e
 
 ## Overview
 
-A `UserPromptSubmit` hook reads the natural-language part of your message, asks a fast model to flag real English mistakes (articles, prepositions, false friends, verb tense, word-order calques from your native language, typos), and posts a short hint as its own reply. Code, file paths, commands, and ticket IDs are ignored — only prose is analyzed.
+A [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) reads the natural-language part of each prompt you type and asks Haiku to flag real English mistakes: articles, prepositions, false friends, verb tense, word-order calques from your native language, and typos. Code, file paths, commands, and ticket IDs are ignored.
 
-The hook is registered with `"asyncRewake": true` (`hooks.json`): Claude Code runs the whole script in the background, and if it exits with code `2`, wakes Claude to post the hint immediately — even if you're idle and haven't sent another message yet. If it exits `0`, nothing happens: no wake, no message, no trace.
+The hint shows up as a dim line in the transcript. Claude never reads it, it never starts a turn, and it never interrupts what Claude is doing. Your prompt goes through unchanged and right away; the analysis runs in the background.
 
-The hint is **hits-only**: a single line of `wrong → fix` pairs. The coach reports the specific fixes, never a full rewrite of your message — so it stays compact no matter how long the prompt is.
+## What you'll see
 
-**Hard guarantee: it never blocks a turn.** The hook runs in the background from the moment it fires (`asyncRewake` implies `async`), so your turn is never held up by it. `asyncRewake` only backgrounds the hook when the host is interactive, so under headless `claude -p` the hook exits `0` immediately rather than risk exit `2` being read as a blocking error. It can only later *wake* Claude to post a hint; it cannot stop your turn or ask for confirmation. See [Technical Details](#technical-details) for why earlier designs couldn't deliver this at all.
-
-## What it does, per message
-
-1. Skip fast: subagent turns, harness-injected turns (system reminders, background notifications), slash commands, and anything under 5 real words exit immediately — no model call.
-2. Otherwise, call `claude -p --model claude-haiku-4-5-20251001 --tools ""` with the message plus your last ~40 lines of ledger history, forcing a schema-validated JSON reply (`{ok, mistakes[]}`, up to 5 mistakes) — never freeform text.
-3. Each flagged mistake is checked against your actual message: if the model's `wrong` fragment isn't a verbatim substring of what you typed, that mistake is dropped. Whatever survives is appended to your local ledger (`~/.claude/english-coach/log.md`).
-4. If anything survives (and it passes a defense-in-depth content check — no code fences, links, or meta-instruction-shaped text), it's printed to stderr with instructions to reproduce it verbatim, and the hook exits `2` — waking Claude to post it as a short standalone reply. Otherwise the hook exits `0` and nothing happens.
-
-Recurring mistakes in your ledger are prioritized in future analyses — the hints should get more targeted to *your* patterns the more you use it.
-
-## Example
-
-Say you send this prompt (three mistakes typical of a Spanish speaker):
+Send a prompt with a few typical Spanish-speaker mistakes:
 
 ```
 Can you explain me how the units are consumed when two authorizations overlaps?
-I have a doubt about the exhaustion logic.
 ```
 
-Your question gets answered immediately, no wait. A few seconds later — once
-the analysis finishes, whether or not you've sent anything else — a short new
-reply appears on its own:
+Claude answers as usual. A few seconds later, a line like this appears:
 
-> 📝 *English* — ~~explain me~~ → **explain to me** · ~~authorizations overlaps~~ → **authorizations overlap** · ~~I have a doubt~~ → **I have a question**
+```
+● english-coach: explain me → explain to me · authorizations overlaps → authorizations overlap
+```
 
-Clean prose produces nothing at all — the model returns `{"ok":true}`, the
-hook exits `0`, and no extra reply ever appears.
+Clean prose produces nothing.
+
+Run `/english` to open a pane with your recurring mistakes, most frequent first. It works even while Claude is busy, starts no turn, and closes with Esc.
 
 ## Installation
 
@@ -49,57 +36,42 @@ claude plugin install english-coach@ferchoriverar
 
 ## Requirements
 
-- `bash hooks/selftest.sh` is the plugin's one runnable check — it stubs `claude` and asserts the contract (exit `2` + stderr hint on a real mistake, silent exit `0` otherwise, verbatim gate, injection rejection).
-- The `claude` CLI on `PATH` (the hook shells out to it for the Haiku analysis) and `jq`. Either missing → the hook silently no-ops.
-- Claude Code with support for the `asyncRewake` hook field (this plugin was built and tested against 2.1.246+; check `claude --version` if hints never appear).
-- Your own Claude Code usage/auth — the `claude -p` call runs under your session, so it counts against your own usage, not a shared budget. Capped at `--max-budget-usd 0.10` per call; a real call typically costs $0.02–0.04.
+- Claude Code **2.1.292** or later (`claude --version`).
+- Interactive terminal sessions, including messages sent through Remote Control. The coach stays silent in the Desktop app, the VS Code chat panel, `claude -p`, and the Agent SDK.
+- Mods must be allowed to load. They don't load under the managed settings `allowManagedModsOnly` or `allowManagedHooksOnly`, under `disableAllHooks`, with `--bare` or `--safe-mode`, or in an untrusted workspace. Run `/plugin`: the dim line under the tabs lists the active mods, and `english-coach` should be one of them.
 
 ## Configuration
 
-- `ENGLISH_COACH_NATIVE_LANG` — your native language, used to prioritize word-order-calque mistakes (e.g. `Portuguese`, `French`). Defaults to `Spanish`.
+- `ENGLISH_COACH_NATIVE_LANG` — your native language, used to prioritize word-order-calque mistakes (e.g. `Portuguese`, `French`). Defaults to `Spanish`. Set it in your shell profile or the `env` block in `~/.claude/settings.json`.
 
-Set it in your shell profile or the `env` block in `~/.claude/settings.json` — it's a personal preference that should apply the same across every project, so it's a plain env var rather than a per-project `.claude/*.local.md` settings file.
-
-No other configuration. To stop getting hints, disable the plugin (`claude plugin uninstall english-coach@ferchoriverar` or toggle it off in `enabledPlugins`).
+To stop the coach, disable the plugin: `claude plugin disable english-coach@ferchoriverar`.
 
 ## Privacy
 
-The ledger (`log.md`) under `~/.claude/english-coach/` (or `$CLAUDE_CONFIG_DIR/english-coach/` if set) is local to your machine, per-user, and not part of this plugin's package or any git repo — nobody else's install reads or writes it, and it isn't synced anywhere. Delete it any time to reset your history.
+Up to 8,000 characters of each coached prompt, plus your last 20 recorded mistakes, are sent to Anthropic through your own Claude Code session, and count against your own plan or API key.
 
-## Technical Details
+Your mistakes are kept in the plugin's local store, `~/.claude/plugins/store/english-coach*.json` (under `$CLAUDE_CONFIG_DIR` if set): the newest 200 hints, shared by all your sessions on this machine. Claude Code deletes the file after `cleanupPeriodDays` without use. To reset your history, delete the file and run `/reload-plugins`.
 
-### Why `asyncRewake`, and not the two earlier designs
+## Security
 
-This plugin went through two designs that couldn't actually deliver a hint before landing on this one:
+The Haiku call has no tools and no conversation, so whatever a prompt asks for, it can only return text. That text is parsed locally and trusted only after every check passes: at most 5 pairs of at most 120 characters each; control characters collapsed; each `wrong` fragment has to appear verbatim in what you typed; anything with code fences, links, or `Assistant:`/`<function_calls>` is dropped. The hint is drawn for you only and never enters Claude's context. Only prompts you typed are coached: notifications, other sessions, schedules, other plugins, and pasted harness text are skipped.
 
-1. **Plain `async: true` + `systemMessage`.** Per the [hooks docs](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background): *"An async hook's `systemMessage` and `additionalContext` fields are discarded. Async hooks can't influence the current turn's model input or the user-facing transcript."* The analysis ran and the ledger filled up, but the hint was silently thrown away, every time. Worse, a turn shorter than the ~11s analysis cancelled the hook's process outright, so some messages produced nothing at all.
-2. **A synchronous hook that drained a hint queue into `additionalContext` on your *next* prompt, spawning the actual analysis as a self-detached (`setsid`) background worker.** This worked — the hint was real and did display — but only once you happened to send another message, and if you replied faster than the ~5–11s analysis, the hook could check the queue before the previous worker had written to it, pushing the hint out to the message after that. Nothing was ever lost, but delivery timing was unpredictable.
+## How it works
 
-`asyncRewake: true` (implies `async`) is a hooks field built for exactly this: from the docs' Limitations section — *"Hook output is delivered on the next conversation turn. If the session is idle, the response waits until the next user interaction. **Exception: an `asyncRewake` hook that exits with code 2 wakes Claude immediately even when the session is idle.**"* Exit `2` is what triggers the wake; the hook's stderr becomes the system reminder Claude wakes up to. That's the only documented way for a background hook to cause a *new, unprompted* assistant turn — no queue, no polling for the next prompt, no subagent/`Agent`-tool machinery (a plugin hook is a plain shell script; it has no access to spawn agents even if that were the right tool for this, which it isn't — `asyncRewake` is the lighter, native mechanism).
+`hooks/register.js` handles `prompt.submit` for prompts typed at the terminal or sent through Remote Control. It skips slash commands, prompts under 5 words, and harness text, schedules the analysis with `$.clock.after(0, …)`, and passes the prompt on untouched. The analysis calls `$.model.complete` with the coach instructions and your recent mistakes, runs the checks above, draws the result with `$.ui.log`, and appends it to the ledger in `$.store`.
 
-### Other notes
+## Testing
 
-- Runs as a `command` hook (not a `prompt` hook) specifically so blocking is structurally impossible — and being backgrounded from the start (`asyncRewake` implies `async`) means the initiating turn is never blocked regardless of what the hook eventually does. An earlier prompt-based version occasionally emitted prose instead of a clean verdict, which the harness treated as a block; that failure mode doesn't exist here. It's also a hard requirement, not just a preference: per the hooks docs, `async`/`asyncRewake` are only supported on `command` handlers, and a `prompt` hook's response schema (`{ok, reason, impossible}`) has no field to carry a hint's content anyway — it can only gate, not generate.
-- A recursion guard (`ENGLISH_COACH_RUNNING=1` on the inner `claude -p` call) prevents the nested session from re-triggering this same hook.
-- Latency/cost stays low via the skip heuristics above, the Haiku model, and `--strict-mcp-config` (no MCP servers loaded for the analysis call).
+```sh
+claude plugin validate --strict plugins/english-coach
+claude plugin test plugins/english-coach
+claude --plugin-dir plugins/english-coach   # try it live; overrides the installed copy for that session
+```
 
-### Security
+## Upgrading from 0.x
 
-The analysis call reads your raw, unvalidated prompt text — including anything a pasted message, quoted email, or copied ticket might contain. An earlier version passed that Haiku call's freeform text straight into the model's context, trusting it implicitly. In testing, a message that merely mentioned "GitHub" and "organization" caused the coach to abandon grammar coaching and fabricate a full unrelated answer (complete with a suggested shell command and its own embedded rendering instructions), which then got injected into the main session as if it were legitimate hint content — a textbook prompt-injection failure mode, not a one-off fluke.
-
-Four independent controls close that hole:
-
-1. **No tool access for the analysis call** (`--tools ""`). Whatever the message asks the coach to do, it cannot actually read, write, or execute anything — confirmed by testing that the model can only *hallucinate* fake tool output in text, never really invoke a tool.
-2. **Schema-forced structured output** (`--json-schema`, read from `.structured_output`) instead of freeform prose. The model can only return `{ok, mistakes: [{wrong, fix}]}` — there is no field for a fabricated answer (or a full rewrite) to live in.
-3. **Server-side validation before anything is trusted.** Each `mistakes[].wrong` must occur verbatim in your actual message (case-insensitive substring match) or it's dropped; the assembled note is rejected outright if it contains code fences, URLs, or meta-instruction-shaped text (`Assistant:`, `<function_calls>`). Nothing is written to the ledger, and the hook exits `0` (no wake), until a hint survives all of the above.
-4. **The stderr payload explicitly marks the hint as display text**, telling Claude to reproduce it verbatim, never treat it as an instruction, and resume whatever task the wake interrupted instead of dropping it.
-
-The hook also only ever analyzes text the human actually typed: it skips subagent turns (`agent_id` present in the hook input) and turns carrying harness markers (`<system-reminder>`, `<task-notification>`, background-wake notices, local-command output). Without this, a subagent's own report prose or an injected system notification could get "corrected" and written into the ledger as if it were your English — and then bias future analyses toward fixing mistakes you never made.
+0.x was a settings hook that ran `claude -p` and woke Claude to post each hint as a reply. After updating, run `/reload-plugins` in each open session (or restart it). Your old history in `~/.claude/english-coach/log.md` is left untouched and no longer read; the new ledger starts empty.
 
 ## Author
 
 Luis Fernando Rivera Ramirez
-
-## Version
-
-0.6.1
