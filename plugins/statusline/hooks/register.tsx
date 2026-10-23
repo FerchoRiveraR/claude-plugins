@@ -212,6 +212,7 @@ export const register: Register = on => {
   let extra: Extra | undefined
   let extraAt = 0
   let orgId: string | undefined
+  let plan: string | undefined
   let detail: GitLine | undefined
   let detailAt = 0
   let pr: PrLine = { head: [], tail: [] }
@@ -223,15 +224,14 @@ export const register: Register = on => {
     const id = await $.session.identity()
     email = id.deny === undefined ? id.email : undefined
 
-    if (email === undefined) {
-      try {
-        const auth = await $.process.run(['claude', 'auth', 'status'], { timeoutMs: 10000 })
-        const status = JSON.parse(auth.stdout)
-        email = typeof status?.email === 'string' ? status.email : undefined
-        orgId = typeof status?.orgId === 'string' ? status.orgId : undefined
-      } catch {
-        email = undefined
-      }
+    try {
+      const auth = await $.process.run(['claude', 'auth', 'status'], { timeoutMs: 10000 })
+      const status = JSON.parse(auth.stdout)
+      email ??= typeof status?.email === 'string' ? status.email : undefined
+      orgId = typeof status?.orgId === 'string' ? status.orgId : undefined
+      plan = typeof status?.subscriptionType === 'string' ? status.subscriptionType : undefined
+    } catch {
+      plan = undefined
     }
 
     return next(e)
@@ -277,7 +277,10 @@ export const register: Register = on => {
           extra = parsed.extra
           $.ui.log(`extra usage: status ${r.status}, keys: ${parsed.keys}`, { to: 'debug' })
 
-          if (orgId) {
+          if (plan === 'enterprise') {
+            const { spent, limit } = extra ?? {}
+            if (spent !== undefined && typeof limit === 'number') extra = { ...extra, balance: Math.max(0, limit - spent) }
+          } else if (orgId) {
             const c = await $.http.fetch(`${CREDITS_URL}/${orgId}/prepaid/credits`, {
               headers: { 'anthropic-beta': 'oauth-2025-04-20' },
               auth: auth.handle,
