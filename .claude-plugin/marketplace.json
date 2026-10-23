@@ -42,6 +42,22 @@
       ],
       "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/render",
       "repository": "https://github.com/ferchoriverar/claude-plugins"
+    },
+    {
+      "name": "statusline",
+      "source": "./plugins/statusline",
+      "description": "A status band above the prompt, built as a mod: model, effort, output style, a flexible gap, then reset timer, session usage, cost, context %, session time and account email. Refreshes every 30s and after each turn.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "keywords": [
+        "statusline",
+        "mod",
+        "usage",
+        "cost",
+        "developer-experience"
+      ],
+      "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/statusline",
+      "repository": "https://github.com/ferchoriverar/claude-plugins"
     }
   ]
 }

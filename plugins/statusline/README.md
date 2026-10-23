@@ -1,0 +1,32 @@
+# statusline
+
+A status band above the prompt, built as a Claude Code mod (no shell script, no `statusLine` setting).
+
+```
+Sonnet 5 5 | high | default | main | +16/-0  ········  resets 2h 14m | 37% used | $1.42 | ctx 21% | 48m
+Credits 2% | Left $48.91 | Used $1.09  ········  you@example.com
+```
+
+Line 1, left: model, effort, output style, and inside a git repository the branch and the lines added/removed against HEAD (untracked files are not counted). A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
+
+## Tabs
+
+The band has a tab picker on its first row, `Tab: Status` / `Git`; only the selected tab's lines are drawn below. Status is the two lines above. Git has two lines, each showing only what applies. Line 1: branch, then `+added/-removed` lines against HEAD and `dirty`, both left out when the tree has no changes, a flexible gap, then the repo (owner/name from the origin remote). Line 2: the branch's pull request (`PR #12`, needs the `gh` CLI, refreshed every minute) and `↑ahead ↓behind` against the PR's base on origin (default branch without a PR), each left out when there is nothing to show, a flexible gap, then when the last fetch ran (from `.git/FETCH_HEAD`; `never fetched` if it has not). Outside a repository it says `not a git repository`.
+
+Switch tabs with the picker (focus the band with ctrl+x tab or a click; the picker is already selected, so Enter opens it and the arrow keys choose) or with `/tab` (next tab), `/tab git` or `/tab status`.
+
+Line 2 of the Status tab: usage credits (spent, monthly limit, balance), a flexible gap, then the account email.
+
+## Install
+
+```
+/plugin install statusline --marketplace ferchoriverar/claude-plugins
+```
+
+## Notes
+
+- Refreshes every 30 seconds and after each model step and turn.
+- Model and effort appear after the first request of the session; until then the model comes from settings.
+- The email is read once at session start from `claude auth status`, so it follows the account you are signed in to. Set the `email` option in the plugin's config to override it.
+- Extra usage comes from Anthropic's `/api/oauth/usage` endpoint, refreshed every 5 minutes; it shows `—` when your plan has no extra usage or the request fails.
+- Reset timer and usage need a subscription; they are left out otherwise.

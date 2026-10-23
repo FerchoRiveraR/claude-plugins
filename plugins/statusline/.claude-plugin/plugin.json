@@ -1,0 +1,19 @@
+{
+  "name": "statusline",
+  "version": "0.1.0",
+  "description": "A status band above the prompt: model, effort, output style, reset timer, session usage, cost, context %, session time and email.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "email": {
+      "type": "string",
+      "title": "Email",
+      "description": "Shown at the right end when the session cannot tell the account's email itself"
+    }
+  },
+  "author": {
+    "name": "Luis Fernando Rivera Ramirez",
+    "url": "https://github.com/ferchoriverar"
+  },
+  "homepage": "https://github.com/ferchoriverar/claude-plugins/tree/main/plugins/statusline",
+  "repository": "https://github.com/ferchoriverar/claude-plugins"
+}
