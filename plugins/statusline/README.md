@@ -3,11 +3,11 @@
 A status band above the prompt, built as a Claude Code mod (no shell script, no `statusLine` setting).
 
 ```
-Sonnet 5 5 | high | default | main | +16/-0  ········  resets 2h 14m | 37% used | $1.42 | ctx 21% | 48m
+Sonnet 5 5 | high | default  ········  resets 2h 14m | 37% used | $1.42 | ctx 21% | 48m
 Credits 2% | Left $48.91 | Used $1.09  ········  you@example.com
 ```
 
-Line 1, left: model, effort, output style, and inside a git repository the branch and the lines added/removed against HEAD (untracked files are not counted). A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
+Line 1, left: model, effort, output style (branch and changes live on the Git tab). A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
 
 ## Tabs
 
