@@ -100,7 +100,7 @@ async function readGitDetail($: EngineInterface, now: number): Promise<GitLine |
     const hasLines = added !== '0' || removed !== '0'
 
     return {
-      left: [branch, ...(hasLines ? [`+${added}/-${removed}`] : []), ...(isDirty ? ['dirty'] : [])],
+      left: [branch, ...(hasLines ? [`+${added}/-${removed}`] : []), ...(isDirty ? ['dirty'] : []), ...(arrows ? [arrows] : [])],
       repo: await readRepo($),
       fetched: await readFetched($, now),
       arrows,
@@ -122,21 +122,76 @@ async function readFetched($: EngineInterface, now: number): Promise<string> {
   }
 }
 
-// The Git tab's second line, left: the branch's pull request if it has one.
+// The Git tab's second line, left: the branch's pull request if it has one, then its merge status, checks, review and assignees (else author).
 type Part = { text: string; href?: string; prefix?: string; tone?: 'bright' | 'dim' }
+type PrLine = { head: Part[]; tail: Part[] }
 
-async function readPr($: EngineInterface): Promise<Part[]> {
+const REVIEW: Record<string, string> = {
+  APPROVED: '✓ approved',
+  CHANGES_REQUESTED: '✗ changes requested',
+  REVIEW_REQUIRED: '… review required',
+}
+
+function checksText(rollup: unknown): string | undefined {
+  const checks = (Array.isArray(rollup) ? rollup : []) as { conclusion?: string; state?: string; status?: string }[]
+  if (checks.length === 0) return undefined
+
+  const failed = checks.filter(c => /FAIL|ERROR|CANCEL|TIMED/i.test(c.conclusion ?? c.state ?? '')).length
+  const running = checks.filter(c => (c.status && c.status !== 'COMPLETED') || c.state === 'PENDING').length
+
+  return failed ? `✗ ${failed} failing` : running ? `… ${running} running` : '✓ checks'
+}
+
+// ready to merge, bypass (blocked, but an admin may merge anyway) or unable to merge; nothing while GitHub is still working it out.
+async function mergeText($: EngineInterface, state: unknown, number: number): Promise<string | undefined> {
+  if (state === 'CLEAN' || state === 'UNSTABLE' || state === 'HAS_HOOKS') return '✓ ready to merge'
+  if (state === 'UNKNOWN' || typeof state !== 'string') return undefined
+  if (state === 'BLOCKED' || state === 'BEHIND') {
+    const [owner, name] = (await readRepo($)).text.split('/')
+    const r = await $.process.run(
+      [
+        'gh', 'api', 'graphql',
+        '-f', 'query=query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){viewerCanMergeAsAdmin}}}',
+        '-f', `o=${owner}`, '-f', `r=${name}`, '-F', `n=${number}`,
+      ],
+      { timeoutMs: 15000 },
+    )
+    try {
+      if (r.exitCode === 0 && JSON.parse(r.stdout)?.data?.repository?.pullRequest?.viewerCanMergeAsAdmin === true) return '! bypass'
+    } catch {
+      // unreadable answer: fall through to unable to merge
+    }
+  }
+
+  return '✗ unable to merge'
+}
+
+async function readPr($: EngineInterface): Promise<PrLine> {
   try {
-    const r = await $.process.run(['gh', 'pr', 'view', '--json', 'number,url'], { timeoutMs: 15000 })
+    const r = await $.process.run(
+      ['gh', 'pr', 'view', '--json', 'number,url,author,assignees,reviewDecision,statusCheckRollup,mergeStateStatus'],
+      { timeoutMs: 15000 },
+    )
     if (r.exitCode !== 0) $.ui.log(`gh pr view: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
     const pr = r.exitCode === 0 ? JSON.parse(r.stdout) : undefined
-    return [
-      ...(pr?.number !== undefined ? [{ prefix: 'PR ', text: `#${pr.number}`, tone: 'bright' as const, href: typeof pr.url === 'string' ? pr.url : undefined }] : []),
-    ]
+    if (pr?.number === undefined) return { head: [], tail: [] }
+
+    const assignees = (Array.isArray(pr.assignees) ? pr.assignees : [])
+      .map((a: { login?: unknown }) => a.login)
+      .filter((l: unknown): l is string => typeof l === 'string')
+    const who = assignees.length > 0 ? assignees.join(', ') : typeof pr.author?.login === 'string' ? pr.author.login : undefined
+    const merge = await mergeText($, pr.mergeStateStatus, pr.number)
+    const checks = checksText(pr.statusCheckRollup)
+    const review = REVIEW[String(pr.reviewDecision ?? '')]
+
+    return {
+      head: [{ prefix: 'PR ', text: `#${pr.number}`, tone: 'bright', href: typeof pr.url === 'string' ? pr.url : undefined }],
+      tail: [merge, checks, review, who].filter((t): t is string => t !== undefined).map(text => ({ text })),
+    }
   } catch (err) {
     $.ui.log(`gh pr view failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
 
-    return []
+    return { head: [], tail: [] }
   }
 }
 
@@ -153,7 +208,7 @@ export const register: Register = (on, options) => {
   let orgId: string | undefined
   let detail: GitLine | undefined
   let detailAt = 0
-  let pr: Part[] = []
+  let pr: PrLine = { head: [], tail: [] }
   let prAt = 0
   let prBranch: string | undefined
 
@@ -323,7 +378,7 @@ export const register: Register = (on, options) => {
           {oneLine(detail, 'not a git repository')}
           {detail ? (
             <Box flexDirection="row">
-              {row([...pr, ...(detail.arrows ? [bright(detail.arrows)] : [])])}
+              {row([...pr.head, ...pr.tail])}
               <Box flexGrow={1} />
               <Text dimColor>{detail.fetched}</Text>
             </Box>

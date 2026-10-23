@@ -28,7 +28,7 @@ function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
     value: {
       exitCode: 0,
       stdout: e.argv[0] === 'gh'
-        ? '{"number":5,"baseRefName":"main","url":"https://github.com/o/r/pull/5"}'
+        ? '{"number":5,"url":"https://github.com/o/r/pull/5","author":{"login":"octo"},"assignees":[],"mergeStateStatus":"CLEAN","reviewDecision":"REVIEW_REQUIRED","statusCheckRollup":[{"conclusion":"SUCCESS","status":"COMPLETED"}]}'
         : e.argv.includes('--porcelain=v2')
           ? '# branch.head main\n# branch.ab +2 -0\n'
           : 'main\n',
@@ -52,6 +52,10 @@ test('the tab picker switches the band', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeUndefined()
   expect(await ui.find({ type: 'Link' })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^octo$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^✓ ready to merge$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^✓ checks$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^… review required$/ })).toBeTruthy()
   expect((await ui.find({ type: 'Text', text: /^↑2$/ }))?.props).toMatchObject({ bold: true })
   expect((await ui.find({ type: 'Text', text: /^#5$/ }))?.props).toMatchObject({ bold: true, underline: true })
   expect((await ui.find({ type: 'Text', text: /^PR $/ }))?.props).toMatchObject({ bold: true })
