@@ -28,7 +28,11 @@ function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
   on('process.run', (_, e) => ({
     value: {
       exitCode: 0,
-      stdout: e.argv.includes('--porcelain=v2') ? '# branch.head main\n' : 'main\n',
+      stdout: e.argv[0] === 'gh'
+        ? '{"number":5,"baseRefName":"main","url":"https://github.com/o/r/pull/5"}'
+        : e.argv.includes('--porcelain=v2')
+          ? '# branch.head main\n'
+          : 'main\n',
       stderr: '',
       isStdoutTruncated: false,
       isStderrTruncated: false,
@@ -46,6 +50,9 @@ test('the tab picker switches the band', async ($, on) => {
   await ui.select({ plugin: 'statusline', key: 'tab', value: 'git' })
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Link' })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^#5$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^PR $/ })).toBeTruthy()
 
   await ui.select({ plugin: 'statusline', key: 'tab', value: 'status' })
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeTruthy()
