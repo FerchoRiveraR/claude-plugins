@@ -14,7 +14,9 @@ const BAND = {
   },
 } as const
 
-function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
+const OPEN_PR = '[{"number":5,"url":"https://github.com/o/r/pull/5","author":{"login":"octo"},"assignees":[],"mergeStateStatus":"CLEAN","reviewDecision":"REVIEW_REQUIRED","statusCheckRollup":[{"conclusion":"SUCCESS","status":"COMPLETED"}],"isDraft":false}]'
+
+function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1], gh = OPEN_PR) {
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.identity', () => ({ value: { kind: 'subscription', isVerified: false, email: 'me@example.com' } }))
   on('session.usage', () => ({
@@ -28,7 +30,7 @@ function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
     value: {
       exitCode: 0,
       stdout: e.argv[0] === 'gh'
-        ? '{"number":5,"url":"https://github.com/o/r/pull/5","author":{"login":"octo"},"assignees":[],"mergeStateStatus":"CLEAN","reviewDecision":"REVIEW_REQUIRED","statusCheckRollup":[{"conclusion":"SUCCESS","status":"COMPLETED"}]}'
+        ? gh
         : e.argv.includes('--porcelain=v2')
           ? '# branch.head main\n# branch.ab +2 -0\n'
           : 'main\n',
@@ -67,5 +69,27 @@ test('the tab picker switches the band', async ($, on) => {
   await ui.select({ plugin: 'statusline', key: 'tab', value: 'status' })
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a draft PR says so, and no open PR draws nothing', async ($, on) => {
+  stubEngine(on, OPEN_PR.replace('"isDraft":false', '"isDraft":true'))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  const draft = await $.ui.mount(BAND)
+  await draft.select({ plugin: 'statusline', key: 'tab', value: 'git' })
+  expect(await draft.find({ type: 'Text', text: /^Draft PR $/ })).toBeTruthy()
+  expect(await draft.find({ type: 'Text', text: /merge/ })).toBeUndefined()
+  await draft.unmount()
+})
+
+test('a branch with no open PR draws no PR', async ($, on) => {
+  stubEngine(on, '[]')
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount(BAND)
+  await ui.select({ plugin: 'statusline', key: 'tab', value: 'git' })
+  expect(await ui.find({ type: 'Text', text: /^#5$/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeTruthy()
   await ui.unmount()
 })
