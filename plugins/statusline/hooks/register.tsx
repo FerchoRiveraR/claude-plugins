@@ -69,7 +69,7 @@ const span = (ms: number) => {
   return hh > 0 ? `${hh}h ${String(mm).padStart(2, '0')}m` : `${mm}m`
 }
 
-type GitLine = { left: string[]; repo: { text: string; href?: string }; fetched: string }
+type GitLine = { left: string[]; repo: { text: string; href?: string }; fetched: string; arrows: string }
 
 // owner/repo from the origin remote and the page it lives at, else the folder's name.
 async function readRepo($: EngineInterface): Promise<{ text: string; href?: string }> {
@@ -91,6 +91,9 @@ async function readGitDetail($: EngineInterface, now: number): Promise<GitLine |
     const lines = st.stdout.split('\n')
     const branch = lines.find(l => l.startsWith('# branch.head '))?.slice(14) ?? 'detached'
     const isDirty = lines.some(l => /^[12?] /.test(l))
+    // `branch.ab` is there only when the branch has an upstream; print just the sides that differ.
+    const ab = /^# branch\.ab \+(\d+) -(\d+)/.exec(lines.find(l => l.startsWith('# branch.ab ')) ?? '')
+    const arrows = [ab?.[1] && ab[1] !== '0' ? `↑${ab[1]}` : '', ab?.[2] && ab[2] !== '0' ? `↓${ab[2]}` : ''].filter(Boolean).join(' ')
     const diff = await $.process.run(['git', 'diff', 'HEAD', '--shortstat'], { timeoutMs: 3000 })
     const added = /(\d+) insertion/.exec(diff.stdout)?.[1] ?? '0'
     const removed = /(\d+) deletion/.exec(diff.stdout)?.[1] ?? '0'
@@ -100,6 +103,7 @@ async function readGitDetail($: EngineInterface, now: number): Promise<GitLine |
       left: [branch, ...(hasLines ? [`+${added}/-${removed}`] : []), ...(isDirty ? ['dirty'] : [])],
       repo: await readRepo($),
       fetched: await readFetched($, now),
+      arrows,
     }
   } catch {
     return undefined
@@ -118,27 +122,16 @@ async function readFetched($: EngineInterface, now: number): Promise<string> {
   }
 }
 
-// The Git tab's second line: the branch's pull request if it has one, and how far it is from its base on origin if it differs.
+// The Git tab's second line, left: the branch's pull request if it has one.
 type Part = { text: string; href?: string; prefix?: string }
 
 async function readPr($: EngineInterface): Promise<Part[]> {
   try {
-    const r = await $.process.run(['gh', 'pr', 'view', '--json', 'number,baseRefName,url'], { timeoutMs: 15000 })
+    const r = await $.process.run(['gh', 'pr', 'view', '--json', 'number,url'], { timeoutMs: 15000 })
     if (r.exitCode !== 0) $.ui.log(`gh pr view: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
     const pr = r.exitCode === 0 ? JSON.parse(r.stdout) : undefined
-    let base: string | undefined = pr?.baseRefName
-    if (!base) {
-      const head = await $.process.run(['git', 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { timeoutMs: 3000 })
-      base = head.exitCode === 0 ? head.stdout.trim().replace(/^origin\//, '') : 'main'
-    }
-
-    const cmp = await $.process.run(['git', 'rev-list', '--left-right', '--count', `HEAD...origin/${base}`], { timeoutMs: 3000 })
-    const [ahead = '0', behind = '0'] = cmp.exitCode === 0 ? cmp.stdout.trim().split(/\s+/) : []
-    const arrows = [ahead !== '0' ? `↑${ahead}` : '', behind !== '0' ? `↓${behind}` : ''].filter(Boolean).join(' ')
-
     return [
       ...(pr?.number !== undefined ? [{ prefix: 'PR ', text: `#${pr.number}`, href: typeof pr.url === 'string' ? pr.url : undefined }] : []),
-      ...(arrows ? [{ text: arrows }] : []),
     ]
   } catch (err) {
     $.ui.log(`gh pr view failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
@@ -337,7 +330,7 @@ export const register: Register = (on, options) => {
           {oneLine(detail, 'not a git repository')}
           {detail ? (
             <Box flexDirection="row">
-              {row(pr)}
+              {row([...pr, ...(detail.arrows ? [{ text: detail.arrows }] : [])])}
               <Box flexGrow={1} />
               <Text>{detail.fetched}</Text>
             </Box>

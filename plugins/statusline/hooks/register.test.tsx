@@ -31,7 +31,7 @@ function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
       stdout: e.argv[0] === 'gh'
         ? '{"number":5,"baseRefName":"main","url":"https://github.com/o/r/pull/5"}'
         : e.argv.includes('--porcelain=v2')
-          ? '# branch.head main\n'
+          ? '# branch.head main\n# branch.ab +2 -0\n'
           : 'main\n',
       stderr: '',
       isStdoutTruncated: false,
@@ -51,6 +51,8 @@ test('the tab picker switches the band', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeUndefined()
   expect(await ui.find({ type: 'Link' })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^↑2$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /↓/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /^#5$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^PR $/ })).toBeTruthy()
 
