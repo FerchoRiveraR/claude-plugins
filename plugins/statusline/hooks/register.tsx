@@ -10,7 +10,8 @@ const TABS = [
 ] as const
 
 const REFRESH_MS = 30000
-const EXTRA_EVERY_MS = 300000
+const EXTRA_EVERY_MS = 900000
+const BACKOFF_MS = 3600000
 const CREDITS_URL = 'https://api.anthropic.com/api/oauth/organizations'
 const GIT_EVERY_MS = 5000
 const PR_EVERY_MS = 60000
@@ -211,6 +212,7 @@ export const register: Register = on => {
   let email: string | undefined
   let extra: Extra | undefined
   let extraAt = 0
+  let extraWait = EXTRA_EVERY_MS
   let orgId: string | undefined
   let plan: string | undefined
   let detail: GitLine | undefined
@@ -264,7 +266,7 @@ export const register: Register = on => {
     const now = await $.clock.now()
     const style = (await $.settings.read({ key: 'outputStyle' })) as string | undefined
     const shownModel = model ?? ((await $.settings.read({ key: 'model' })) as string | undefined)
-    if (now - extraAt > EXTRA_EVERY_MS) {
+    if (now - extraAt > extraWait) {
       extraAt = now
       try {
         const auth = await $.session.authorize()
@@ -273,7 +275,9 @@ export const register: Register = on => {
             headers: { 'anthropic-beta': 'oauth-2025-04-20' },
             auth: auth.handle,
           })
-          const parsed = r.ok ? parseExtra(r.text) : { extra: undefined, keys: 'request failed' }
+          extraWait = r.status === 429 ? BACKOFF_MS : EXTRA_EVERY_MS
+          if (!r.ok) throw new Error(`status ${r.status}`)
+          const parsed = parseExtra(r.text)
           extra = parsed.extra
           $.ui.log(`extra usage: status ${r.status}, keys: ${parsed.keys}`, { to: 'debug' })
 

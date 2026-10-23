@@ -28,5 +28,5 @@ Line 2 of the Status tab: usage credits (spent, monthly limit, balance), a flexi
 - Refreshes every 30 seconds and after each model step and turn.
 - Model and effort appear after the first request of the session; until then the model comes from settings.
 - The email, org and plan are read once at session start from `claude auth status`, so they follow the account you are signed in to. There is nothing to configure.
-- Extra usage comes from Anthropic's `/api/oauth/usage` endpoint, refreshed every 5 minutes; it shows `—` when your plan has no extra usage or the request fails. On Enterprise there is no prepaid balance, so `Left` is the monthly limit minus what you have used (`—` when the limit is unlimited); other plans read the prepaid balance.
+- Extra usage comes from Anthropic's `/api/oauth/usage` endpoint, refreshed every 15 minutes; it shows `—` when your plan has no extra usage or the request fails. On Enterprise there is no prepaid balance, so `Left` is the monthly limit minus what you have used (`—` when the limit is unlimited); other plans read the prepaid balance.
 - Reset timer and usage need a subscription; they are left out otherwise.
