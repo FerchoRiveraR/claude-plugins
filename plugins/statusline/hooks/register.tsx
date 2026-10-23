@@ -95,17 +95,17 @@ async function readGitUnsafe($: EngineInterface): Promise<string[]> {
   return [branch, `+${added}/-${removed}`]
 }
 
-type GitLine = { left: string[]; repo: string; fetched: string }
+type GitLine = { left: string[]; repo: { text: string; href?: string }; fetched: string }
 
-// owner/repo from the origin remote, else the folder's name.
-async function readRepo($: EngineInterface): Promise<string> {
+// owner/repo from the origin remote and the page it lives at, else the folder's name.
+async function readRepo($: EngineInterface): Promise<{ text: string; href?: string }> {
   const url = await $.process.run(['git', 'remote', 'get-url', 'origin'], { timeoutMs: 3000 })
-  const slug = /[:/]([^/:]+\/[^/]+?)(?:\.git)?\/?$/.exec(url.stdout.trim())?.[1]
-  if (url.exitCode === 0 && slug) return slug
+  const m = /^(?:[a-z+]+:\/\/(?:[^@/]+@)?|[^@/]+@)([^/:]+)[:/]([^/:]+\/[^/]+?)(?:\.git)?\/?$/.exec(url.stdout.trim())
+  if (url.exitCode === 0 && m) return { text: m[2] ?? '—', href: `https://${m[1]}/${m[2]}` }
 
   const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'], { timeoutMs: 3000 })
 
-  return top.stdout.trim().split('/').pop() || '—'
+  return { text: top.stdout.trim().split('/').pop() || '—' }
 }
 
 // The Git tab's first line: the branch, then only what differs: changed lines and dirty.
@@ -145,9 +145,12 @@ async function readFetched($: EngineInterface, now: number): Promise<string> {
 }
 
 // The Git tab's second line: the branch's pull request if it has one, and how far it is from its base on origin if it differs.
-async function readPr($: EngineInterface): Promise<string[]> {
+type Part = { text: string; href?: string; prefix?: string }
+
+async function readPr($: EngineInterface): Promise<Part[]> {
   try {
-    const r = await $.process.run(['gh', 'pr', 'view', '--json', 'number,baseRefName'], { timeoutMs: 15000 })
+    const r = await $.process.run(['gh', 'pr', 'view', '--json', 'number,baseRefName,url'], { timeoutMs: 15000 })
+    if (r.exitCode !== 0) $.ui.log(`gh pr view: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
     const pr = r.exitCode === 0 ? JSON.parse(r.stdout) : undefined
     let base: string | undefined = pr?.baseRefName
     if (!base) {
@@ -159,8 +162,13 @@ async function readPr($: EngineInterface): Promise<string[]> {
     const [ahead = '0', behind = '0'] = cmp.exitCode === 0 ? cmp.stdout.trim().split(/\s+/) : []
     const arrows = [ahead !== '0' ? `↑${ahead}` : '', behind !== '0' ? `↓${behind}` : ''].filter(Boolean).join(' ')
 
-    return [...(pr?.number !== undefined ? [`PR #${pr.number}`] : []), ...(arrows ? [arrows] : [])]
-  } catch {
+    return [
+      ...(pr?.number !== undefined ? [{ prefix: 'PR ', text: `#${pr.number}`, href: typeof pr.url === 'string' ? pr.url : undefined }] : []),
+      ...(arrows ? [{ text: arrows }] : []),
+    ]
+  } catch (err) {
+    $.ui.log(`gh pr view failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
+
     return []
   }
 }
@@ -180,8 +188,9 @@ export const register: Register = (on, options) => {
   let gitAt = 0
   let detail: GitLine | undefined
   let detailAt = 0
-  let pr: string[] = []
+  let pr: Part[] = []
   let prAt = 0
+  let prBranch: string | undefined
 
   on('session.start', async ($, e, next) => {
     $.clock.every(REFRESH_MS, () => redraw($))
@@ -238,7 +247,7 @@ export const register: Register = (on, options) => {
 
     if (e.props.hasSurvey || e.surface === 'mobile') return next(e)
 
-    const { Box, Select, Text } = $.ui.resolve(e)
+    const { Box, Link, Select, Text } = $.ui.resolve(e)
     const selected = await read($, tab)
     const usage = await $.session.usage()
     const now = await $.clock.now()
@@ -279,8 +288,9 @@ export const register: Register = (on, options) => {
       detailAt = now
       detail = await readGitDetail($, now)
     }
-    if (selected === 'git' && now - prAt > PR_EVERY_MS) {
+    if (selected === 'git' && (now - prAt > PR_EVERY_MS || detail?.left[0] !== prBranch)) {
       prAt = now
+      prBranch = detail?.left[0]
       pr = await readPr($)
     }
     const five = usage.rateLimits.find(r => r.kind === 'five_hour')
@@ -301,11 +311,24 @@ export const register: Register = (on, options) => {
       span(now - usage.startedAt),
     ].filter((s): s is string => s !== undefined)
 
-    const row = (items: string[]) =>
-      items.flatMap((s, i) => [
-        i > 0 ? <Text key={`s${i}`} dimColor>{' | '}</Text> : null,
-        <Text key={`t${i}`}>{s}</Text>,
-      ])
+    const row = (items: Part[] | string[]) =>
+      items.flatMap((item, i) => {
+        const part = typeof item === 'string' ? { text: item } : item
+
+        return [
+          i > 0 ? <Text key={`s${i}`} dimColor>{' | '}</Text> : null,
+          part.prefix ? <Text key={`p${i}`}>{part.prefix}</Text> : null,
+          part.href ? (
+            <Link key={`t${i}`} href={part.href}>
+              <Text underline>{part.text}</Text>
+            </Link>
+          ) : (
+            <Text key={`t${i}`} underline={part.prefix !== undefined}>
+              {part.text}
+            </Text>
+          ),
+        ]
+      })
 
     const total = (extra?.spent ?? 0) + (extra?.balance ?? 0)
     const credited =
@@ -329,7 +352,13 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row">
           {row(line.left)}
           <Box flexGrow={1} />
-          <Text>{line.repo}</Text>
+          {line.repo.href ? (
+            <Link href={line.repo.href}>
+              <Text underline>{line.repo.text}</Text>
+            </Link>
+          ) : (
+            <Text>{line.repo.text}</Text>
+          )}
         </Box>
       ) : (
         <Text dimColor>{empty}</Text>
@@ -343,7 +372,7 @@ export const register: Register = (on, options) => {
             <Box flexDirection="row">
               {row(pr)}
               <Box flexGrow={1} />
-              <Text dimColor>{detail.fetched}</Text>
+              <Text>{detail.fetched}</Text>
             </Box>
           ) : null}
         </Box>
