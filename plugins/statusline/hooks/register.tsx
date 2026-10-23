@@ -166,30 +166,36 @@ async function mergeText($: EngineInterface, state: unknown, number: number): Pr
   return '✗ unable to merge'
 }
 
-async function readPr($: EngineInterface): Promise<PrLine> {
+async function readPr($: EngineInterface, branch: string | undefined): Promise<PrLine> {
   try {
+    if (!branch || branch === 'detached') return { head: [], tail: [] }
+
+    // Only the open pull request of the branch: merged and closed ones are not shown.
     const r = await $.process.run(
-      ['gh', 'pr', 'view', '--json', 'number,url,author,assignees,reviewDecision,statusCheckRollup,mergeStateStatus'],
+      [
+        'gh', 'pr', 'list', '--head', branch, '--state', 'open', '--limit', '1', '--json',
+        'number,url,author,assignees,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft',
+      ],
       { timeoutMs: 15000 },
     )
-    if (r.exitCode !== 0) $.ui.log(`gh pr view: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
-    const pr = r.exitCode === 0 ? JSON.parse(r.stdout) : undefined
+    if (r.exitCode !== 0) $.ui.log(`gh pr list: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
+    const pr = r.exitCode === 0 ? JSON.parse(r.stdout)?.[0] : undefined
     if (pr?.number === undefined) return { head: [], tail: [] }
 
     const assignees = (Array.isArray(pr.assignees) ? pr.assignees : [])
       .map((a: { login?: unknown }) => a.login)
       .filter((l: unknown): l is string => typeof l === 'string')
     const who = assignees.length > 0 ? assignees.join(', ') : typeof pr.author?.login === 'string' ? pr.author.login : undefined
-    const merge = await mergeText($, pr.mergeStateStatus, pr.number)
+    const merge = pr.isDraft ? undefined : await mergeText($, pr.mergeStateStatus, pr.number)
     const checks = checksText(pr.statusCheckRollup)
     const review = REVIEW[String(pr.reviewDecision ?? '')]
 
     return {
-      head: [{ prefix: 'PR ', text: `#${pr.number}`, tone: 'bright', href: typeof pr.url === 'string' ? pr.url : undefined }],
+      head: [{ prefix: pr.isDraft ? 'Draft PR ' : 'PR ', text: `#${pr.number}`, tone: 'bright', href: typeof pr.url === 'string' ? pr.url : undefined }],
       tail: [merge, checks, review, who].filter((t): t is string => t !== undefined).map(text => ({ text })),
     }
   } catch (err) {
-    $.ui.log(`gh pr view failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
+    $.ui.log(`gh pr list failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
 
     return { head: [], tail: [] }
   }
@@ -199,7 +205,7 @@ function redraw($: EngineInterface) {
   return update($, tick, n => n + 1)
 }
 
-export const register: Register = (on, options) => {
+export const register: Register = on => {
   let model: string | undefined
   let effort: string | undefined
   let email: string | undefined
@@ -292,11 +298,11 @@ export const register: Register = (on, options) => {
     if (selected === 'git' && (now - prAt > PR_EVERY_MS || detail?.left[0] !== prBranch)) {
       prAt = now
       prBranch = detail?.left[0]
-      pr = await readPr($)
+      pr = await readPr($, detail?.left[0])
     }
     const five = usage.rateLimits.find(r => r.kind === 'five_hour')
     const resets = five?.resetsAt ? Date.parse(five.resetsAt) - now : undefined
-    const mail = typeof options.email === 'string' && options.email ? options.email : email
+    const mail = email
 
     const bright = (text: string): Part => ({ text, tone: 'bright' })
     const left = [bright(pretty(shownModel)), bright(effort ?? '—'), bright(style ?? 'default')]
