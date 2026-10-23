@@ -15,7 +15,6 @@ const BAND = {
 } as const
 
 function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1]) {
-  on('command.register', () => ({ value: { command: 'tab' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.identity', () => ({ value: { kind: 'subscription', isVerified: false, email: 'me@example.com' } }))
   on('session.usage', () => ({
@@ -65,13 +64,4 @@ test('the tab picker switches the band', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeUndefined()
   await ui.unmount()
-})
-
-test('/tab cycles and takes a name', async ($, on) => {
-  stubEngine(on)
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-
-  expect((await $.command.run({ command: 'tab', args: '' })).text).toBe('Statusline tab: Git')
-  expect((await $.command.run({ command: 'tab', args: '' })).text).toBe('Statusline tab: Status')
-  expect((await $.command.run({ command: 'tab', args: 'git' })).text).toBe('Statusline tab: Git')
 })

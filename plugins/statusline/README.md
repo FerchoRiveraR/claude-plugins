@@ -13,7 +13,7 @@ Line 1, left: model, effort and output style in bold (branch and changes live on
 
 The band has a tab picker on its first row, `Tab: Status` / `Git`; only the selected tab's lines are drawn below. Status is the two lines above. Git has two lines, each showing only what applies. Line 1: branch, then `+added/-removed` lines against HEAD and `dirty`, both left out when the tree has no changes, a flexible gap, then the repo (owner/name from the origin remote, an underlined link to its page). Line 2: the branch's pull request (`PR #12`, with `#12` an underlined link to the PR; needs the `gh` CLI, refreshed every minute) and `↑ahead ↓behind` of the local branch against its own remote branch, printed only for the sides that differ (nothing when it is in sync or has no upstream), a flexible gap, then when the last fetch ran (from `.git/FETCH_HEAD`; `never fetched` if it has not). Branch, changes, dirty, the PR and the arrows are bold, the last fetch time is dimmed and the repo is regular. Outside a repository it says `not a git repository`.
 
-Switch tabs with the picker (focus the band with ctrl+x tab or a click; the picker is already selected, so Enter opens it and the arrow keys choose) or with `/tab` (next tab), `/tab git` or `/tab status`.
+Switch tabs with the picker: focus the band with ctrl+x tab or a click, press Enter to open it, choose with the arrow keys.
 
 Line 2 of the Status tab: usage credits (spent, monthly limit, balance), a flexible gap, then the account email.
 
