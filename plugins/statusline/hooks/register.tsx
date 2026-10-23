@@ -69,32 +69,6 @@ const span = (ms: number) => {
   return hh > 0 ? `${hh}h ${String(mm).padStart(2, '0')}m` : `${mm}m`
 }
 
-// Empty outside a git repository; else the branch and the line changes against HEAD.
-async function readGit($: EngineInterface): Promise<string[]> {
-  try {
-    return await readGitUnsafe($)
-  } catch {
-    return []
-  }
-}
-
-async function readGitUnsafe($: EngineInterface): Promise<string[]> {
-  const head = await $.process.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 3000 })
-  if (head.exitCode !== 0) return []
-
-  let branch = head.stdout.trim()
-  if (branch === 'HEAD') {
-    const sha = await $.process.run(['git', 'rev-parse', '--short', 'HEAD'], { timeoutMs: 3000 })
-    branch = sha.exitCode === 0 ? sha.stdout.trim() : 'detached'
-  }
-
-  const diff = await $.process.run(['git', 'diff', 'HEAD', '--shortstat'], { timeoutMs: 3000 })
-  const added = /(\d+) insertion/.exec(diff.stdout)?.[1] ?? '0'
-  const removed = /(\d+) deletion/.exec(diff.stdout)?.[1] ?? '0'
-
-  return [branch, `+${added}/-${removed}`]
-}
-
 type GitLine = { left: string[]; repo: { text: string; href?: string }; fetched: string }
 
 // owner/repo from the origin remote and the page it lives at, else the folder's name.
@@ -184,8 +158,6 @@ export const register: Register = (on, options) => {
   let extra: Extra | undefined
   let extraAt = 0
   let orgId: string | undefined
-  let git: string[] = []
-  let gitAt = 0
   let detail: GitLine | undefined
   let detailAt = 0
   let pr: Part[] = []
@@ -280,10 +252,6 @@ export const register: Register = (on, options) => {
         $.ui.log('extra usage: request failed', { to: 'debug' })
       }
     }
-    if (now - gitAt > GIT_EVERY_MS) {
-      gitAt = now
-      git = await readGit($)
-    }
     if (selected === 'git' && now - detailAt > GIT_EVERY_MS) {
       detailAt = now
       detail = await readGitDetail($, now)
@@ -301,7 +269,6 @@ export const register: Register = (on, options) => {
       pretty(shownModel),
       effort ?? '—',
       style ?? 'default',
-      ...git,
     ]
     const right = [
       resets !== undefined ? `resets ${span(resets)}` : undefined,
