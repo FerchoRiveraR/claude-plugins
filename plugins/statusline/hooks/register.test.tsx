@@ -46,12 +46,17 @@ test('the tab picker switches the band', async ($, on) => {
 
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeTruthy()
+  expect((await ui.find({ type: 'Text', text: /^default$/ }))?.props).toMatchObject({ bold: true })
+  expect((await ui.find({ type: 'Text', text: /me@example.com/ }))?.props).toMatchObject({ dimColor: true })
 
   await ui.select({ plugin: 'statusline', key: 'tab', value: 'git' })
   expect(await ui.find({ type: 'Text', text: /fetched/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /Credits/ })).toBeUndefined()
   expect(await ui.find({ type: 'Link' })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^↑2$/ })).toBeTruthy()
+  expect((await ui.find({ type: 'Text', text: /^↑2$/ }))?.props).toMatchObject({ bold: true })
+  expect((await ui.find({ type: 'Text', text: /^#5$/ }))?.props).toMatchObject({ bold: true, underline: true })
+  expect((await ui.find({ type: 'Text', text: /^PR $/ }))?.props).toMatchObject({ bold: true })
+  expect((await ui.find({ type: 'Text', text: /fetched/ }))?.props).toMatchObject({ dimColor: true })
   expect(await ui.find({ type: 'Text', text: /↓/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /^#5$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^PR $/ })).toBeTruthy()

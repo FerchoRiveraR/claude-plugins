@@ -7,11 +7,11 @@ Sonnet 5 5 | high | default  ········  resets 2h 14m | 37% used | $1.42 
 Credits 2% | Left $48.91 | Used $1.09  ········  you@example.com
 ```
 
-Line 1, left: model, effort, output style (branch and changes live on the Git tab). A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
+Line 1, left: model, effort and output style in bold (branch and changes live on the Git tab). On line 2 the email is dimmed; everything else is regular. A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
 
 ## Tabs
 
-The band has a tab picker on its first row, `Tab: Status` / `Git`; only the selected tab's lines are drawn below. Status is the two lines above. Git has two lines, each showing only what applies. Line 1: branch, then `+added/-removed` lines against HEAD and `dirty`, both left out when the tree has no changes, a flexible gap, then the repo (owner/name from the origin remote, an underlined link to its page). Line 2: the branch's pull request (`PR #12`, with `#12` an underlined link to the PR; needs the `gh` CLI, refreshed every minute) and `↑ahead ↓behind` of the local branch against its own remote branch, printed only for the sides that differ (nothing when it is in sync or has no upstream), a flexible gap, then when the last fetch ran (from `.git/FETCH_HEAD`; `never fetched` if it has not). Outside a repository it says `not a git repository`.
+The band has a tab picker on its first row, `Tab: Status` / `Git`; only the selected tab's lines are drawn below. Status is the two lines above. Git has two lines, each showing only what applies. Line 1: branch, then `+added/-removed` lines against HEAD and `dirty`, both left out when the tree has no changes, a flexible gap, then the repo (owner/name from the origin remote, an underlined link to its page). Line 2: the branch's pull request (`PR #12`, with `#12` an underlined link to the PR; needs the `gh` CLI, refreshed every minute) and `↑ahead ↓behind` of the local branch against its own remote branch, printed only for the sides that differ (nothing when it is in sync or has no upstream), a flexible gap, then when the last fetch ran (from `.git/FETCH_HEAD`; `never fetched` if it has not). Branch, changes, dirty, the PR and the arrows are bold, the last fetch time is dimmed and the repo is regular. Outside a repository it says `not a git repository`.
 
 Switch tabs with the picker (focus the band with ctrl+x tab or a click; the picker is already selected, so Enter opens it and the arrow keys choose) or with `/tab` (next tab), `/tab git` or `/tab status`.
 
