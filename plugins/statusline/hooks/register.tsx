@@ -159,12 +159,6 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     $.clock.every(REFRESH_MS, () => redraw($))
-    await $.command.register({
-      name: 'tab',
-      description: 'Switch the statusline tab (no argument: next tab)',
-      argumentHint: '[status|git]',
-      immediate: true,
-    })
     const id = await $.session.identity()
     email = id.deny === undefined ? id.email : undefined
 
@@ -180,15 +174,6 @@ export const register: Register = (on, options) => {
     }
 
     return next(e)
-  })
-
-  on('command.run', { command: 'tab' }, async ($, e) => {
-    const asked = TABS.find(t => t.id === e.args.trim().toLowerCase())
-    const current = await read($, tab)
-    const next = asked ?? TABS[(TABS.findIndex(t => t.id === current) + 1) % TABS.length] ?? TABS[0]
-    await update($, tab, () => next.id)
-
-    return { text: `Statusline tab: ${next.label}` }
   })
 
   on('turn.step', async function* ($, e, next) {
@@ -367,3 +352,4 @@ export const register: Register = (on, options) => {
     )
   })
 }
+
