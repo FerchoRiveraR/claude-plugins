@@ -123,7 +123,7 @@ async function readFetched($: EngineInterface, now: number): Promise<string> {
 }
 
 // The Git tab's second line, left: the branch's pull request if it has one.
-type Part = { text: string; href?: string; prefix?: string }
+type Part = { text: string; href?: string; prefix?: string; tone?: 'bright' | 'dim' }
 
 async function readPr($: EngineInterface): Promise<Part[]> {
   try {
@@ -131,7 +131,7 @@ async function readPr($: EngineInterface): Promise<Part[]> {
     if (r.exitCode !== 0) $.ui.log(`gh pr view: exit ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`, { to: 'debug' })
     const pr = r.exitCode === 0 ? JSON.parse(r.stdout) : undefined
     return [
-      ...(pr?.number !== undefined ? [{ prefix: 'PR ', text: `#${pr.number}`, href: typeof pr.url === 'string' ? pr.url : undefined }] : []),
+      ...(pr?.number !== undefined ? [{ prefix: 'PR ', text: `#${pr.number}`, tone: 'bright' as const, href: typeof pr.url === 'string' ? pr.url : undefined }] : []),
     ]
   } catch (err) {
     $.ui.log(`gh pr view failed: ${String(err).slice(0, 200)}`, { to: 'debug' })
@@ -258,11 +258,8 @@ export const register: Register = (on, options) => {
     const resets = five?.resetsAt ? Date.parse(five.resetsAt) - now : undefined
     const mail = typeof options.email === 'string' && options.email ? options.email : email
 
-    const left = [
-      pretty(shownModel),
-      effort ?? '—',
-      style ?? 'default',
-    ]
+    const bright = (text: string): Part => ({ text, tone: 'bright' })
+    const left = [bright(pretty(shownModel)), bright(effort ?? '—'), bright(style ?? 'default')]
     const right = [
       resets !== undefined ? `resets ${span(resets)}` : undefined,
       five ? `${Math.round(five.percentUsed)}% used` : undefined,
@@ -277,13 +274,24 @@ export const register: Register = (on, options) => {
 
         return [
           i > 0 ? <Text key={`s${i}`} dimColor>{' | '}</Text> : null,
-          part.prefix ? <Text key={`p${i}`}>{part.prefix}</Text> : null,
+          part.prefix ? (
+            <Text key={`p${i}`} bold={part.tone === 'bright'} dimColor={part.tone === 'dim'}>
+              {part.prefix}
+            </Text>
+          ) : null,
           part.href ? (
             <Link key={`t${i}`} href={part.href}>
-              <Text underline>{part.text}</Text>
+              <Text underline bold={part.tone === 'bright'} dimColor={part.tone === 'dim'}>
+                {part.text}
+              </Text>
             </Link>
           ) : (
-            <Text key={`t${i}`} underline={part.prefix !== undefined}>
+            <Text
+              key={`t${i}`}
+              underline={part.prefix !== undefined}
+              bold={part.tone === 'bright'}
+              dimColor={part.tone === 'dim'}
+            >
               {part.text}
             </Text>
           ),
@@ -310,7 +318,7 @@ export const register: Register = (on, options) => {
     const oneLine = (line: GitLine | undefined, empty: string) =>
       line ? (
         <Box flexDirection="row">
-          {row(line.left)}
+          {row(line.left.map(bright))}
           <Box flexGrow={1} />
           {line.repo.href ? (
             <Link href={line.repo.href}>
@@ -330,9 +338,9 @@ export const register: Register = (on, options) => {
           {oneLine(detail, 'not a git repository')}
           {detail ? (
             <Box flexDirection="row">
-              {row([...pr, ...(detail.arrows ? [{ text: detail.arrows }] : [])])}
+              {row([...pr, ...(detail.arrows ? [bright(detail.arrows)] : [])])}
               <Box flexGrow={1} />
-              <Text>{detail.fetched}</Text>
+              <Text dimColor>{detail.fetched}</Text>
             </Box>
           ) : null}
         </Box>
@@ -346,7 +354,7 @@ export const register: Register = (on, options) => {
           <Box flexDirection="row">
             {row(second)}
             <Box flexGrow={1} />
-            {mail ? <Text>{mail}</Text> : null}
+            {mail ? <Text dimColor>{mail}</Text> : null}
           </Box>
         </Box>
       )
