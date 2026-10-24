@@ -47,7 +47,7 @@
       "name": "statusline",
       "source": "./plugins/statusline",
       "description": "A status band above the prompt, built as a mod: model, effort, output style, a flexible gap, then reset timer, session usage, cost, context %, session time and account email. Refreshes every 30s and after each turn.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "productivity",
       "keywords": [
         "statusline",
