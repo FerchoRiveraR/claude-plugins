@@ -24,6 +24,7 @@ function stubEngine(on: Parameters<Parameters<typeof test>[1]>[1], gh = OPEN_PR)
   }))
   on('session.authorize', () => ({ value: null }))
   on('settings.read', () => ({ value: {} }))
+  on('env.get', () => ({ value: undefined }))
   on('clock.every', () => ({ value: undefined }))
   on('clock.now', () => ({ value: 60000 }))
   on('process.run', (_, e) => ({
