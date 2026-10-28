@@ -12,6 +12,7 @@ const TABS = [
 const REFRESH_MS = 30000
 const EXTRA_EVERY_MS = 900000
 const BACKOFF_MS = 3600000
+const RETRY_MS = 60000
 const CREDITS_URL = 'https://api.anthropic.com/api/oauth/organizations'
 const GIT_EVERY_MS = 5000
 const PR_EVERY_MS = 60000
@@ -208,7 +209,6 @@ function redraw($: EngineInterface) {
 
 export const register: Register = on => {
   let model: string | undefined
-  let effort: string | undefined
   let email: string | undefined
   let extra: Extra | undefined
   let extraAt = 0
@@ -242,7 +242,6 @@ export const register: Register = on => {
   on('turn.step', async function* ($, e, next) {
     if (e.agentId === undefined) {
       model = e.model
-      effort = typeof e.effort === 'number' ? String(e.effort) : e.effort
       await redraw($)
     }
 
@@ -266,6 +265,8 @@ export const register: Register = on => {
     const now = await $.clock.now()
     const style = (await $.settings.read({ key: 'outputStyle' })) as string | undefined
     const shownModel = model ?? ((await $.settings.read({ key: 'model' })) as string | undefined)
+    const modelEfforts = (await $.settings.read({ key: 'modelSettings' })) as Record<string, { effortLevel?: string }> | undefined
+    const shownEffort = (await $.env.get('CLAUDE_EFFORT')) ?? (model ? modelEfforts?.[model]?.effortLevel : undefined)
     if (now - extraAt > extraWait) {
       extraAt = now
       try {
@@ -295,6 +296,7 @@ export const register: Register = on => {
           }
         }
       } catch {
+        if (extra === undefined && extraWait === EXTRA_EVERY_MS) extraWait = RETRY_MS
         $.ui.log('extra usage: request failed', { to: 'debug' })
       }
     }
@@ -312,7 +314,7 @@ export const register: Register = on => {
     const mail = email
 
     const bright = (text: string): Part => ({ text, tone: 'bright' })
-    const left = [bright(pretty(shownModel)), bright(effort ?? '—'), bright(style ?? 'default')]
+    const left = [bright(pretty(shownModel)), bright(shownEffort ?? '—'), bright(style ?? 'default')]
     const right = [
       resets !== undefined ? `resets ${span(resets)}` : undefined,
       five ? `${Math.round(five.percentUsed)}% used` : undefined,
