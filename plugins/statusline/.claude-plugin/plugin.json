@@ -1,6 +1,6 @@
 {
   "name": "statusline",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A status band above the prompt: model, effort, output style, reset timer, session usage, cost, context %, session time and email.",
   "types": "./types/index.d.ts",
   "author": {
