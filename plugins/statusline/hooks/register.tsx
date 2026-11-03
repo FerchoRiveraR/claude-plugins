@@ -266,6 +266,7 @@ export const register: Register = on => {
     const style = (await $.settings.read({ key: 'outputStyle' })) as string | undefined
     const shownModel = model ?? ((await $.settings.read({ key: 'model' })) as string | undefined)
     const modelEfforts = (await $.settings.read({ key: 'modelSettings' })) as Record<string, { effortLevel?: string }> | undefined
+    const advisor = (await $.settings.read({ key: 'advisorModel' })) as string | undefined
     const shownEffort = (await $.env.get('CLAUDE_EFFORT')) ?? (model ? modelEfforts?.[model]?.effortLevel : undefined)
     if (now - extraAt > extraWait) {
       extraAt = now
@@ -314,7 +315,7 @@ export const register: Register = on => {
     const mail = email
 
     const bright = (text: string): Part => ({ text, tone: 'bright' })
-    const left = [bright(pretty(shownModel)), bright(shownEffort ?? '—'), bright(style ?? 'default')]
+    const left = [bright(pretty(shownModel)), bright(shownEffort ?? '—'), bright(style ?? 'default'), advisor ? `Advisor ${pretty(advisor)}` : 'Advisor off']
     const right = [
       resets !== undefined ? `resets ${span(resets)}` : undefined,
       five ? `${Math.round(five.percentUsed)}% used` : undefined,
