@@ -7,7 +7,7 @@ Sonnet 5 5 | high | default  ········  resets 2h 14m | 37% used | $1.42 
 Credits 2% | Left $48.91 | Used $1.09  ········  you@example.com
 ```
 
-Line 1, left: model, effort and output style in bold (branch and changes live on the Git tab). On line 2 the email is dimmed; everything else is regular. A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
+Line 1, left: model, effort and output style in bold, then the advisor model in regular weight (`Advisor Opus 5.5`, or `Advisor off` when none is set) (branch and changes live on the Git tab). On line 2 the credits; the email is dimmed; everything else is regular. A flexible gap pushes the right side to the edge: reset timer and usage of the 5-hour window, session cost, context window %, session time.
 
 ## Tabs
 
